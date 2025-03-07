@@ -10,9 +10,9 @@
 
 <!-- Navigate with buttons -->
 <p class="navigation-buttons">
-    <button on:click={() => push('/wild/something')}>Visit /wild/something</button>
-    <button on:click={() => pop()}>Go back</button>
-    <button on:click={() => replace('/wild/replaced')}>Replace current page</button>
+    <button onclick={() => push('/wild/something')}>Visit /wild/something</button>
+    <button onclick={() => pop()}>Go back</button>
+    <button onclick={() => replace('/wild/replaced')}>Replace current page</button>
 </p>
 
 <!-- Query string -->
@@ -44,7 +44,7 @@
     <li>
         <a id="dynamic-link-{dl.id}" href={dl.link} use:link use:active>Dynamic Link {dl.id}</a>
          - 
-        <i role="button" id="delete-link-{dl.id}" on:click={() => dynamicLinks = dynamicLinks.filter(e => e.id != dl.id)}>delete link</i>
+        <i role="button" id="delete-link-{dl.id}" onclick={() => dynamicLinks = dynamicLinks.filter(e => e.id != dl.id)}>delete link</i>
     </li>
 {/each}
 </ul>
@@ -56,7 +56,7 @@
     <li>
         <a id="disable-link-{dl.id}" href="/foo" use:link={dl.opts} use:active>Dynamic Link {dl.id}</a>
          - 
-        <i role="button" id="toggle-link-{dl.id}" on:click={dl.toggle}>
+        <i role="button" id="toggle-link-{dl.id}" onclick={dl.toggle}>
             {#if dl.opts.disabled}
                 enable link
             {:else}
@@ -101,7 +101,7 @@ import active from '../../../active'
 import routes from './routes'
 
 // Contains logging information used by tests
-let logbox = ''
+let logbox = $state('')
 
 // Handles the "conditionsFailed" event dispatched by the router when a component can't be loaded because one of its pre-condition failed
 function conditionsFailed(event) {
@@ -141,7 +141,7 @@ const urlParams = new URLSearchParams(window.location.search)
 const restoreScrollState = !!urlParams.has('scroll')
 
 // List of dynamic links
-let dynamicLinks = [
+let dynamicLinks = $state([
     {
         id: 1,
         link: '/hello/dynamic-link-1'
@@ -154,10 +154,10 @@ let dynamicLinks = [
         id: 3,
         link: '/hello/dynamic-link-3'
     }
-]
+])
 
 // List of links that can be disabled
-let disableLinks = [
+let disableLinks = $state([
     {
         id: 1,
         opts: {
@@ -185,5 +185,5 @@ let disableLinks = [
         disableLinks = disableLinks
     }
     return el
-})
+}))
 </script>

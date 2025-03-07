@@ -5,6 +5,12 @@
 {/if}
 
 <script>
-// Static props if they're set
-export let staticProp = null
+
+  /**
+   * @typedef {Object} Props
+   * @property {any} [staticProp] - Static props if they're set
+   */
+
+  /** @type {Props} */
+  let { staticProp = null } = $props();
 </script>
