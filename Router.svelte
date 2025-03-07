@@ -1,4 +1,4 @@
-<script context="module">
+<script module>
 import {readable, writable, derived} from 'svelte/store'
 import {tick} from 'svelte'
 
@@ -237,51 +237,49 @@ function scrollstateHistoryHandler(href) {
 </script>
 
 {#if componentParams}
-    <svelte:component
-    this={component}
+    <component
     params={componentParams}
-    on:routeEvent
     {...props}
-    />
+    >
+    </component>
 {:else}
-    <svelte:component
-    this={component}
-    on:routeEvent
+    <component
     {...props}
-    />
+    >
+    </component>
 {/if}
 
 <script>
-import {onDestroy, createEventDispatcher, afterUpdate} from 'svelte'
+import {onDestroy} from 'svelte'
 import {parse} from 'regexparam'
 
-/**
- * Dictionary of all routes, in the format `'/path': component`.
- *
- * For example:
- * ````js
- * import HomeRoute from './routes/HomeRoute.svelte'
- * import BooksRoute from './routes/BooksRoute.svelte'
- * import NotFoundRoute from './routes/NotFoundRoute.svelte'
- * routes = {
- *     '/': HomeRoute,
- *     '/books': BooksRoute,
- *     '*': NotFoundRoute
- * }
- * ````
- */
-export let routes = {}
-
-/**
- * Optional prefix for the routes in this router. This is useful for example in the case of nested routers.
- */
-export let prefix = ''
-
-/**
- * If set to true, the router will restore scroll positions on back navigation
- * and scroll to top on forward navigation.
- */
-export let restoreScrollState = false
+let {
+    /**
+     * Dictionary of all routes, in the format `'/path': component`.
+     *
+     * For example:
+     * ````js
+     * import HomeRoute from './routes/HomeRoute.svelte'
+     * import BooksRoute from './routes/BooksRoute.svelte'
+     * import NotFoundRoute from './routes/NotFoundRoute.svelte'
+     * routes = {
+     *     '/': HomeRoute,
+     *     '/books': BooksRoute,
+     *     '*': NotFoundRoute
+     * }
+     * ````
+     */
+    routes = $bindable({}),
+    /**
+     * Optional prefix for the routes in this router. This is useful for example in the case of nested routers.
+     */
+    prefix = $bindable(''),
+    /**
+     * If set to true, the router will restore scroll positions on back navigation
+     * and scroll to top on forward navigation.
+     */
+    restoreScrollState = $bindable(false)
+} = $props()
 
 /**
  * Container for a route: path, component
@@ -428,56 +426,59 @@ else {
     })
 }
 
-// Props for the component to render
-let component = null
-let componentParams = null
-let props = {}
+// State declarations
+let component = $state(null)
+let componentParams = $state(null)
+let props = $state({})
+let previousScrollState = $state(null)
+let lastLoc = $state(null)
+let componentObj = $state(null)
+let popStateChanged = $state(null)
 
-// Event dispatcher from Svelte
-const dispatch = createEventDispatcher()
-
-// Just like dispatch, but executes on the next iteration of the event loop
-async function dispatchNextTick(name, detail) {
-    // Execute this code when the current call stack is complete
-    await tick()
-    dispatch(name, detail)
+// Event dispatcher using DOM custom events
+function dispatch(name, detail) {
+    const event = new CustomEvent(name, { detail })
+    window.dispatchEvent(event)
 }
 
-// If this is set, then that means we have popped into this var the state of our last scroll position
-let previousScrollState = null
+// Effects
+$effect(() => {
+    history.scrollRestoration = restoreScrollState ? 'manual' : 'auto';
+})
 
-// Update history.scrollRestoration depending on restoreScrollState
-$: history.scrollRestoration = restoreScrollState ? 'manual' : 'auto'
-let popStateChanged = null
-if (restoreScrollState) {
-    popStateChanged = (event) => {
-        // If this event was from our history.replaceState, event.state will contain
-        // our scroll history. Otherwise, event.state will be null (like on forward
-        // navigation)
-        if (event.state && (event.state.__svelte_spa_router_scrollY || event.state.__svelte_spa_router_scrollX)) {
-            previousScrollState = event.state
-        }
-        else {
-            previousScrollState = null
-        }
+$effect(() => {
+    if (restoreScrollState) {
+        popStateChanged = (event) => {
+            if (event.state && (event.state.__svelte_spa_router_scrollY || event.state.__svelte_spa_router_scrollX)) {
+                previousScrollState = event.state;
+            }
+            else {
+                previousScrollState = null;
+            }
+        };
+        
+        window.addEventListener('popstate', popStateChanged);
+        return () => window.removeEventListener('popstate', popStateChanged);
     }
-    // This is removed in the destroy() invocation below
-    window.addEventListener('popstate', popStateChanged)
+});
 
-    afterUpdate(() => {
-        restoreScroll(previousScrollState)
-    })
+$effect(() => {
+    if (previousScrollState !== null) {
+        restoreScroll(previousScrollState);
+    }
+});
+
+// Helper function that dispatches both a Svelte event and a DOM custom event
+function dispatchNextTick(name, detail) {
+    // Dispatch Svelte event
+    dispatch(name, detail)
+    
+    // Also dispatch DOM custom event for backwards compatibility
+    const event = new CustomEvent(name, { detail })
+    window.dispatchEvent(event)
 }
 
-// Always have the latest value of loc
-let lastLoc = null
-
-// Current object of the component loaded
-let componentObj = null
-
-// Handle hash change events
-// Listen to changes in the $loc store and update the page
-// Do not use the $: syntax because it gets triggered by too many things
+// Main routing effect
 const unsubscribeLoc = loc.subscribe(async (newLoc) => {
     lastLoc = newLoc
 
@@ -498,23 +499,16 @@ const unsubscribeLoc = loc.subscribe(async (newLoc) => {
             params: (match && typeof match == 'object' && Object.keys(match).length) ? match : null
         }
 
-        // Check if the route can be loaded - if all conditions succeed
         if (!(await routesList[i].checkConditions(detail))) {
-            // Don't display anything
             component = null
             componentObj = null
-            // Trigger an event to notify the user, then exit
             dispatchNextTick('conditionsFailed', detail)
             return
         }
 
-        // Trigger an event to alert that we're loading the route
-        // We need to clone the object on every event invocation so we don't risk the object to be modified in the next tick
-        dispatchNextTick('routeLoading', Object.assign({}, detail))
+        dispatchNextTick('routeLoading', { ...detail })
 
-        // If there's a component to show while we're loading the route, display it
         const obj = routesList[i].component
-        // Do not replace the component if we're loading the same one as before, to avoid the route being unmounted and re-mounted
         if (componentObj != obj) {
             if (obj.loading) {
                 component = obj.loading
@@ -522,29 +516,22 @@ const unsubscribeLoc = loc.subscribe(async (newLoc) => {
                 componentParams = obj.loadingParams
                 props = {}
 
-                // Trigger the routeLoaded event for the loading component
-                // Create a copy of detail so we don't modify the object for the dynamic route (and the dynamic route doesn't modify our object too)
-                dispatchNextTick('routeLoaded', Object.assign({}, detail, {
-                    component: component,
+                dispatchNextTick('routeLoaded', {
+                    ...detail,
+                    component,
                     name: component.name,
                     params: componentParams
-                }))
+                })
             }
             else {
                 component = null
                 componentObj = null
             }
 
-            // Invoke the Promise
             const loaded = await obj()
 
-            // Now that we're here, after the promise resolved, check if we still want this component, as the user might have navigated to another page in the meanwhile
-            if (newLoc != lastLoc) {
-                // Don't update the component, just exit
-                return
-            }
+            if (newLoc != lastLoc) return
 
-            // If there is a "default" property, which is used by async routes, then pick that
             component = (loaded && loaded.default) || loaded
             componentObj = obj
         }
@@ -557,23 +544,19 @@ const unsubscribeLoc = loc.subscribe(async (newLoc) => {
         else {
             componentParams = null
         }
-
-        // Set static props, if any
         props = routesList[i].props
 
-        // Dispatch the routeLoaded event then exit
-        // We need to clone the object on every event invocation so we don't risk the object to be modified in the next tick
-        dispatchNextTick('routeLoaded', Object.assign({}, detail, {
-            component: component,
+        dispatchNextTick('routeLoaded', {
+            ...detail,
+            component,
             name: component.name,
             params: componentParams
-        })).then(() => {
-            params.set(componentParams)
         })
+        
+        params.set(componentParams)
         return
     }
 
-    // If we're still here, there was no match, so show the empty component
     component = null
     componentObj = null
     params.set(undefined)
