@@ -30,10 +30,10 @@
 <!-- Show the router -->
 <Router
   {routes}
-  on:conditionsFailed={conditionsFailed}
-  on:routeLoaded={routeLoaded}
-  on:routeLoading={routeLoading}
-  on:routeEvent={routeEvent}
+  conditionsFailed={conditionsFailed}
+  routeLoaded={routeLoaded}
+  routeLoading={routeLoading}
+  routeEvent={routeEvent}
   {restoreScrollState}
 />
 

@@ -278,7 +278,11 @@ let {
      * If set to true, the router will restore scroll positions on back navigation
      * and scroll to top on forward navigation.
      */
-    restoreScrollState = $bindable(false)
+    restoreScrollState = $bindable(false),
+    conditionsFailed = $bindable(() => {}),
+    routeLoaded = $bindable(() => {}),
+    routeLoading = $bindable(() => {}),
+    routeEvent = $bindable(() => {}),
 } = $props()
 
 /**
@@ -435,11 +439,6 @@ let lastLoc = $state(null)
 let componentObj = $state(null)
 let popStateChanged = $state(null)
 
-// Event dispatcher using DOM custom events
-function dispatch(name, detail) {
-    const event = new CustomEvent(name, { detail })
-    window.dispatchEvent(event)
-}
 
 // Effects
 $effect(() => {
@@ -471,8 +470,6 @@ $effect(() => {
 // Helper function that dispatches both a Svelte event and a DOM custom event
 function dispatchNextTick(name, detail) {
     // Dispatch Svelte event
-    dispatch(name, detail)
-    
     // Also dispatch DOM custom event for backwards compatibility
     const event = new CustomEvent(name, { detail })
     window.dispatchEvent(event)
@@ -502,10 +499,12 @@ const unsubscribeLoc = loc.subscribe(async (newLoc) => {
         if (!(await routesList[i].checkConditions(detail))) {
             component = null
             componentObj = null
+            conditionsFailed({detail: detail})
             dispatchNextTick('conditionsFailed', detail)
             return
         }
 
+        routeLoading({ detail: { ...detail } })
         dispatchNextTick('routeLoading', { ...detail })
 
         const obj = routesList[i].component
@@ -515,7 +514,14 @@ const unsubscribeLoc = loc.subscribe(async (newLoc) => {
                 componentObj = obj
                 componentParams = obj.loadingParams
                 props = {}
-
+                routeLoaded({
+                    detail: {
+                        ...detail,
+                        component,
+                        name: component.name,
+                        params: componentParams
+                    }
+                })
                 dispatchNextTick('routeLoaded', {
                     ...detail,
                     component,
@@ -546,6 +552,14 @@ const unsubscribeLoc = loc.subscribe(async (newLoc) => {
         }
         props = routesList[i].props
 
+        routeLoaded({
+            detail: {
+                ...detail,
+                component,
+                name: component.name,
+                params: componentParams
+            }
+        })
         dispatchNextTick('routeLoaded', {
             ...detail,
             component,
