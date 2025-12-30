@@ -11,5 +11,5 @@
 	 */
 
 	/** @type {Props} */
-	let { params } = $props();
+	const {params} = $props()
 </script>

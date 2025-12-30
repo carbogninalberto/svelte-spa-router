@@ -457,36 +457,36 @@ let popStateChanged = $state(null)
 
 // Effects
 $effect(() => {
-    history.scrollRestoration = restoreScrollState ? 'manual' : 'auto';
+    history.scrollRestoration = restoreScrollState ? 'manual' : 'auto'
 })
 
 $effect(() => {
     if (restoreScrollState) {
         popStateChanged = (event) => {
             if (event.state && (event.state.__svelte_spa_router_scrollY || event.state.__svelte_spa_router_scrollX)) {
-                previousScrollState = event.state;
+                previousScrollState = event.state
             }
             else {
-                previousScrollState = null;
+                previousScrollState = null
             }
-        };
-        
-        window.addEventListener('popstate', popStateChanged);
-        return () => window.removeEventListener('popstate', popStateChanged);
+        }
+
+        window.addEventListener('popstate', popStateChanged)
+        return () => window.removeEventListener('popstate', popStateChanged)
     }
-});
+})
 
 $effect(() => {
     if (previousScrollState !== null) {
-        restoreScroll(previousScrollState);
+        restoreScroll(previousScrollState)
     }
-});
+})
 
 // Helper function that dispatches both a Svelte event and a DOM custom event
 function dispatchNextTick(name, detail) {
     // Dispatch Svelte event
     // Also dispatch DOM custom event for backwards compatibility
-    const event = new CustomEvent(name, { detail })
+    const event = new CustomEvent(name, {detail})
     window.dispatchEvent(event)
 }
 
@@ -519,8 +519,8 @@ const unsubscribeLoc = loc.subscribe(async (newLoc) => {
             return
         }
 
-        routeLoading({ detail: { ...detail } })
-        dispatchNextTick('routeLoading', { ...detail })
+        routeLoading({detail: {...detail}})
+        dispatchNextTick('routeLoading', {...detail})
 
         const obj = routesList[i].component
         if (componentObj != obj) {
@@ -552,7 +552,9 @@ const unsubscribeLoc = loc.subscribe(async (newLoc) => {
 
             const loaded = await obj()
 
-            if (newLoc != lastLoc) return
+            if (newLoc != lastLoc) {
+                return
+            }
 
             componentStore.set((loaded && loaded.default) || loaded)
             componentObj = obj
