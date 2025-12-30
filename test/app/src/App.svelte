@@ -179,11 +179,11 @@ let disableLinks = $state([
             disabled: false
         }
     }
-].map((el) => {
+])
+disableLinks.map((el) => {
     el.toggle = () => {
         el.opts.disabled = !el.opts.disabled
-        disableLinks = disableLinks
     }
     return el
-}))
+})
 </script>

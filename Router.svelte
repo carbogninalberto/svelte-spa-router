@@ -1,5 +1,5 @@
 <script module>
-import {readable, writable, derived} from 'svelte/store'
+import {readable, writable, derived, get} from 'svelte/store'
 import {tick} from 'svelte'
 
 /**
@@ -161,12 +161,28 @@ export function link(node, opts) {
         throw Error('Action "link" can only be used with <a> tags')
     }
 
-    updateLink(node, opts)
+    // Store current opts in a mutable reference so the click handler always sees the latest value
+    let currentOpts = opts
+
+    // Set initial href
+    updateLinkHref(node, currentOpts)
+
+    // Add click handler once, using currentOpts reference
+    const clickHandler = (event) => {
+        event.preventDefault()
+        if (!currentOpts.disabled) {
+            scrollstateHistoryHandler(event.currentTarget.getAttribute('href'))
+        }
+    }
+    node.addEventListener('click', clickHandler)
 
     return {
         update(updated) {
-            updated = linkOpts(updated)
-            updateLink(node, updated)
+            currentOpts = linkOpts(updated)
+            updateLinkHref(node, currentOpts)
+        },
+        destroy() {
+            node.removeEventListener('click', clickHandler)
         }
     }
 }
@@ -187,8 +203,8 @@ export function restoreScroll(state) {
     }
 }
 
-// Internal function used by the link function
-function updateLink(node, opts) {
+// Internal function used by the link function to update href attribute
+function updateLinkHref(node, opts) {
     let href = opts.href || node.getAttribute('href')
 
     // Destination must start with '/' or '#/'
@@ -201,13 +217,6 @@ function updateLink(node, opts) {
     }
 
     node.setAttribute('href', href)
-    node.addEventListener('click', (event) => {
-        // Prevent default anchor onclick behaviour
-        event.preventDefault()
-        if (!opts.disabled) {
-            scrollstateHistoryHandler(event.currentTarget.getAttribute('href'))
-        }
-    })
 }
 
 // Internal function that ensures the argument of the link action is always an object
@@ -236,18 +245,22 @@ function scrollstateHistoryHandler(href) {
 }
 </script>
 
-{#if componentParams}
-    <component
-    params={componentParams}
-    {...props}
-    >
-    </component>
-{:else}
-    <component
-    {...props}
-    >
-    </component>
+{#if $componentStore}
+    {@const Component = $componentStore}
+    {#if $componentParamsStore}
+        <Component
+            params={$componentParamsStore}
+            routeEvent={routeEvent}
+            {...$propsStore}
+        />
+    {:else}
+        <Component
+            routeEvent={routeEvent}
+            {...$propsStore}
+        />
+    {/if}
 {/if}
+
 
 <script>
 import {onDestroy} from 'svelte'
@@ -430,13 +443,15 @@ else {
     })
 }
 
-// State declarations
-let component = $state(null)
-let componentParams = $state(null)
-let props = $state({})
+// State declarations - using writable stores for component state
+// because $state assignments inside async callbacks don't trigger reactivity
+const componentStore = writable(null)
+const componentParamsStore = writable(null)
+const propsStore = writable({})
+
 let previousScrollState = $state(null)
-let lastLoc = $state(null)
-let componentObj = $state(null)
+let lastLoc = null
+let componentObj = null
 let popStateChanged = $state(null)
 
 
@@ -497,7 +512,7 @@ const unsubscribeLoc = loc.subscribe(async (newLoc) => {
         }
 
         if (!(await routesList[i].checkConditions(detail))) {
-            component = null
+            componentStore.set(null)
             componentObj = null
             conditionsFailed({detail: detail})
             dispatchNextTick('conditionsFailed', detail)
@@ -510,27 +525,28 @@ const unsubscribeLoc = loc.subscribe(async (newLoc) => {
         const obj = routesList[i].component
         if (componentObj != obj) {
             if (obj.loading) {
-                component = obj.loading
+                componentStore.set(obj.loading)
                 componentObj = obj
-                componentParams = obj.loadingParams
-                props = {}
+                componentParamsStore.set(obj.loadingParams)
+                propsStore.set({})
+                const comp = obj.loading
                 routeLoaded({
                     detail: {
                         ...detail,
-                        component,
-                        name: component.name,
-                        params: componentParams
+                        component: comp,
+                        name: comp.name,
+                        params: obj.loadingParams
                     }
                 })
                 dispatchNextTick('routeLoaded', {
                     ...detail,
-                    component,
-                    name: component.name,
-                    params: componentParams
+                    component: comp,
+                    name: comp.name,
+                    params: obj.loadingParams
                 })
             }
             else {
-                component = null
+                componentStore.set(null)
                 componentObj = null
             }
 
@@ -538,40 +554,40 @@ const unsubscribeLoc = loc.subscribe(async (newLoc) => {
 
             if (newLoc != lastLoc) return
 
-            component = (loaded && loaded.default) || loaded
+            componentStore.set((loaded && loaded.default) || loaded)
             componentObj = obj
         }
 
         // Set componentParams only if we have a match, to avoid a warning similar to `<Component> was created with unknown prop 'params'`
         // Of course, this assumes that developers always add a "params" prop when they are expecting parameters
+        let matchParams = null
         if (match && typeof match == 'object' && Object.keys(match).length) {
-            componentParams = match
+            matchParams = match
         }
-        else {
-            componentParams = null
-        }
-        props = routesList[i].props
+        componentParamsStore.set(matchParams)
+        propsStore.set(routesList[i].props)
 
+        const comp = get(componentStore)
         routeLoaded({
             detail: {
                 ...detail,
-                component,
-                name: component.name,
-                params: componentParams
+                component: comp,
+                name: comp.name,
+                params: matchParams
             }
         })
         dispatchNextTick('routeLoaded', {
             ...detail,
-            component,
-            name: component.name,
-            params: componentParams
+            component: comp,
+            name: comp.name,
+            params: matchParams
         })
-        
-        params.set(componentParams)
+
+        params.set(matchParams)
         return
     }
 
-    component = null
+    componentStore.set(null)
     componentObj = null
     params.set(undefined)
 })

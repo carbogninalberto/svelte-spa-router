@@ -1,7 +1,7 @@
 {
   "name": "svelte-spa-router",
-  "version": "4.0.1",
-  "description": "Router for SPAs using Svelte 4",
+  "version": "5.0.0",
+  "description": "Router for SPAs using Svelte 5",
   "main": "Router.svelte",
   "svelte": "Router.svelte",
   "types": "Router.d.ts",
@@ -37,6 +37,7 @@
     "svelte",
     "svelte3",
     "svelte4",
+    "svelte5",
     "spa"
   ],
   "author": "Alessandro Segala (@ItalyPaleAle)",
