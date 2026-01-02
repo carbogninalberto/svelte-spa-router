@@ -251,7 +251,7 @@ In case a condition fails, the router emits the `conditionsFailed` event, with t
 You can listen to the `conditionsFailed` event and perform actions in case no route wasn't loaded because of a failed pre-condition:
 
 ````svelte
-<Router {routes} on:conditionsFailed={conditionsFailed} on:routeLoaded={routeLoaded} />
+<Router {routes} {conditionsFailed} {routeLoaded} />
 
 <script>
 // Handles the "conditionsFailed" event dispatched by the router when a component can't be loaded because one of its pre-condition failed
@@ -319,7 +319,7 @@ Using the custom event **`routeEvent`**, instead, allows your components within 
 Example for `App.svelte`:
 
 ```svelte
-<Router {routes} on:routeEvent={routeEvent} />
+<Router {routes} {routeEvent} />
 <script>
 import Router from 'svelte-spa-router'
 import Foo from './Foo.svelte'
@@ -390,10 +390,10 @@ event.detail = {
 For example:
 
 ````svelte
-<Router 
+<Router
   {routes}
-  on:routeLoading={routeLoading}
-  on:routeLoaded={routeLoaded}
+  {routeLoading}
+  {routeLoaded}
 />
 
 <script>
