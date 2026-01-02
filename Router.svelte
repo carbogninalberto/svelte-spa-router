@@ -282,20 +282,20 @@ let {
      * }
      * ````
      */
-    routes = $bindable({}),
+    routes = {},
     /**
      * Optional prefix for the routes in this router. This is useful for example in the case of nested routers.
      */
-    prefix = $bindable(''),
+    prefix = '',
     /**
      * If set to true, the router will restore scroll positions on back navigation
      * and scroll to top on forward navigation.
      */
     restoreScrollState = $bindable(false),
-    conditionsFailed = $bindable(() => {}),
-    routeLoaded = $bindable(() => {}),
-    routeLoading = $bindable(() => {}),
-    routeEvent = $bindable(() => {}),
+    conditionsFailed = () => {},
+    routeLoaded = () => {},
+    routeLoading = () => {},
+    routeEvent = () => {},
 } = $props()
 
 /**

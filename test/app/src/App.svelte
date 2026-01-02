@@ -100,6 +100,16 @@ import active from '../../../active'
 // Import the list of routes
 import routes from './routes'
 
+// Capture console errors for testing (detects reactivity loops)
+if (typeof window !== 'undefined') {
+    window.__consoleErrors = []
+    const originalError = console.error
+    console.error = (...args) => {
+        window.__consoleErrors.push(args.join(' '))
+        originalError.apply(console, args)
+    }
+}
+
 // Contains logging information used by tests
 let logbox = $state('')
 

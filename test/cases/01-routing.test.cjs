@@ -355,4 +355,38 @@ describe('<Router> component', function() {
             .waitForElementVisible('#staticprop')
             .expect.element('#staticprop').text.to.equal('this is static')
     })
+
+    it('scroll restoration with route conditions does not cause infinite loop', (browser) => {
+        // Navigate to a route with conditions while scroll restoration is enabled
+        // This tests the fix for the effect_update_depth_exceeded error
+        browser
+            .url(browser.launchUrl + '?scroll=1#/lucky?pass=1')
+            .waitForElementVisible('#lucky', 5000)
+            .expect.element('#currentpath').text.to.equal('/lucky')
+
+        // Navigate to another route and back
+        browser
+            .click('.navigation-links a[href="#/hello/svelte"]', () => {
+                browser
+                    .waitForElementVisible('#nameparams')
+                    .back(() => {
+                        // Should return to /lucky without errors
+                        browser
+                            .waitForElementVisible('#lucky', 5000)
+                            .expect.element('#currentpath').text.to.equal('/lucky')
+                    })
+            })
+
+        // Verify no console errors (effect_update_depth_exceeded)
+        browser.execute(function() {
+            return window.__consoleErrors || []
+        }, [], function(result) {
+            const errors = result.value || []
+            const reactivityErrors = errors.filter(e =>
+                e.includes('effect_update_depth_exceeded') ||
+                e.includes('Maximum update depth exceeded')
+            )
+            browser.assert.equal(reactivityErrors.length, 0, 'No reactivity loop errors')
+        })
+    })
 })
