@@ -39,6 +39,9 @@ trap cleanup EXIT
 # Cleanup any existing containers first
 cleanup
 
+echo -e "${YELLOW}Running linter (auto-fix + fail on warnings)...${NC}"
+npm run eslint -- --fix --max-warnings 0
+
 echo -e "${YELLOW}Building test app...${NC}"
 npm run build-test-app
 

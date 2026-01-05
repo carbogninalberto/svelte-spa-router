@@ -266,6 +266,7 @@ function scrollstateHistoryHandler(href) {
 import {onDestroy} from 'svelte'
 import {parse} from 'regexparam'
 
+/* eslint-disable prefer-const -- Svelte 5 $props() uses let per official docs: https://svelte.dev/docs/svelte/$props */
 let {
     /**
      * Dictionary of all routes, in the format `'/path': component`.
@@ -297,6 +298,7 @@ let {
     routeLoading = () => {},
     routeEvent = () => {},
 } = $props()
+/* eslint-enable prefer-const */
 
 /**
  * Container for a route: path, component
@@ -429,6 +431,8 @@ class RouteItem {
 }
 
 // Set up all routes
+// Routes are intentionally read once at initialization (they don't change)
+/* eslint-disable svelte/valid-compile -- routes are static, initial capture is intended */
 const routesList = []
 if (routes instanceof Map) {
     // If it's a map, iterate on it right away
@@ -442,6 +446,7 @@ else {
         routesList.push(new RouteItem(path, routes[path]))
     })
 }
+/* eslint-enable svelte/valid-compile */
 
 // State declarations - using writable stores for component state
 // because $state assignments inside async callbacks don't trigger reactivity
