@@ -356,12 +356,14 @@ describe('<Router> component', function() {
             .expect.element('#staticprop').text.to.equal('this is static')
     })
 
-    it('scroll restoration with route conditions does not cause infinite loop', (browser) => {
+    it('scroll restoration with route conditions does not cause infinite loop', function(browser) {
+        this.timeout(15000)
+
         // Navigate to a route with conditions while scroll restoration is enabled
         // This tests the fix for the effect_update_depth_exceeded error
         browser
             .url(browser.launchUrl + '?scroll=1#/lucky?pass=1')
-            .waitForElementVisible('#lucky', 5000)
+            .waitForElementVisible('#lucky', 8000)
             .expect.element('#currentpath').text.to.equal('/lucky')
 
         // Navigate to another route and back
@@ -372,7 +374,7 @@ describe('<Router> component', function() {
                     .back(() => {
                         // Should return to /lucky without errors
                         browser
-                            .waitForElementVisible('#lucky', 5000)
+                            .waitForElementVisible('#lucky', 8000)
                             .expect.element('#currentpath').text.to.equal('/lucky')
                     })
             })

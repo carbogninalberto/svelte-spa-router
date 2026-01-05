@@ -452,7 +452,7 @@ const propsStore = writable({})
 let previousScrollState = $state(null)
 let lastLoc = null
 let componentObj = null
-let popStateChanged = $state(null)
+let popStateChanged = null
 
 
 // Effects
